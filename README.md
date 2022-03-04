@@ -1,11 +1,11 @@
-# Template: Basic Python only robot
+# Python only robot for scraping data from a website
 
-Get started with just Python.
-
-This template robot:
+This robot:
 
 - Uses only Python.
-- Provides a simple template to start from (`task.py`).
+- scrapes the agancies and budget amount
+- scrapes the Investment table for the any chosen agency
+- create the pdf match column (`task.py`).
 
 ## Learning materials
 
