@@ -15,9 +15,10 @@ if not os.path.exists(OUTPUT_PATH):
 
 
 # +
-class ThoughtfulAutomation:
-    Department = []
+class Automatorr:
+    department = []
     headers = []
+    locator = '//div[@id="agency-tiles-widget"]//div[@class="col-sm-4 text-center noUnderline"]'
 
     def __init__(self):
         self.browser = Selenium()
@@ -28,58 +29,34 @@ class ThoughtfulAutomation:
 
 # Creating important functions To be used in the Class
 
-    def create_workbook(self):
-        try:
-            self.files.create_workbook("output/company.xlsx")
-        except Exception as e:
-            logging.error(f"Failed to create workbook: {str(e)}")
-
     def get_all_agencies(self):
-        self.browser.wait_until_page_contains_element('//a[@class="btn btn-default btn-lg-2x trend_sans_oneregular"]')
-        self.browser.find_element('//a[@class="btn btn-default btn-lg-2x trend_sans_oneregular"]').click()
-        self.browser.wait_until_page_contains_element(locator="id:agency-tiles-container")
-        self.Department = self.browser.find_elements(
-            '//div[@id="agency-tiles-widget"]//div[@class="col-sm-4 text-center noUnderline"]')
+        self.browser.wait_until_page_contains_element("//*[@id='node-23']")
+        self.browser.click_element("//*[@id='node-23']")
+        self.browser.wait_until_page_contains_element(self.locator)
+        self.department = self.browser.find_elements(self.locator)
         try:
-            agency_tile_list = []
-            for section in range(1, 50):
-                if self.browser.is_element_visible(locator=f"CSS:#agency-tiles-widget > div > div:nth-child({section})"):
-                    for agency in range(1, 10):
-                        if self.browser.is_element_visible(locator=f"CSS:#agency-tiles-widget > div > div:nth-child({section}) > div:nth-child({agency})"):
-                            agency_tile_list.append((
-                                self.browser.get_text(locator=f"CSS:#agency-tiles-widget > div > div:nth-child({section}) > div:nth-child({agency}) > div > div > div > div:nth-child(2) > a > span.h4.w200"),
-                                self.browser.get_text(locator=f"CSS:#agency-tiles-widget > div > div:nth-child({section}) > div:nth-child({agency}) > div > div > div > div:nth-child(2) > a > span.h1.w900"),
-                            ))
-                        else:
-                            break
-                else:
-                    break
-            return agency_tile_list
+            global records
+            agency_tile_list = ["Agency", ]
+            amount = ["Amount", ]
+            for dept in self.department:
+                agency_tile_list.append(dept.text.split('\n')[0])
+                amount.append(dept.text.split('\n')[2])
         except Exception as e:
-            logging.error.error(f"failed to agencies due to: {str(e)}")
-
-    def write_agencies_tiles(self, data):
+            logging.error(f"failed to agencies due to: {str(e)}")
         try:
-            self.files.create_worksheet(name='Agencies_tiles')
-            self.files.set_worksheet_value(row=1, column=1, value='Agency')
-            self.files.set_worksheet_value(row=1, column=2, value='Tile')
-            row = 2
-            for Agency, Tile in data:
-                self.files.set_worksheet_value(row=row, column=1, value=Agency)
-                self.files.set_worksheet_value(row=row, column=2, value=Tile)
-                row += 1
-        except Exception as e:
-            logging.error(f"Failed to write agencies tiles: {str(e)}")
+            records = {"Agency": agency_tile_list,  "Amount": amount}
+        except Exception:
+            print("Unable to populate the records to worksheet\n")
 
-    def save_excel(self):
-        self.files.remove_worksheet('Sheet')
-        self.files.save_workbook("output/company.xlsx")
-        self.files.close_workbook()
+    def Create_exel_file_for_agency(self):
+        excel_workbook = self.files.create_workbook("output/Agency_Amount_table.xlsx")
+        excel_workbook.append_worksheet("Sheet", records)
+        excel_workbook.save()
 
     def download_wait(self, path_to_downloads):
         seconds = 0
         d_wait = True
-        while d_wait and seconds < 20:
+        while d_wait and seconds < 10:
             time.sleep(1)
             dl_wait = False
             for fname in os.listdir(path_to_downloads):
@@ -115,41 +92,34 @@ class ThoughtfulAutomation:
         for item in heads:
             self.headers.append(item.text)
 
-    def click_agency(self):
-        agency_to_click = "Department of Commerce"
-        for section in range(1, 50):
-            if self.browser.is_element_visible(f"CSS:#agency-tiles-widget > div > div:nth-child({section})"):
-                for agency in range(1, 10):
-                    if self.browser.is_element_visible(f"CSS:#agency-tiles-widget > div > div:nth-child({section}) > div:nth-child({agency})"):
-                        if agency_to_click == self.browser.get_text(f"CSS:#agency-tiles-widget > div > div:nth-child({section}) > div:nth-child({agency}) > div > div > div > div:nth-child(2) > a > span.h4.w200"):
-                            try:
-                                self.browser.click_link(f"CSS:#agency-tiles-widget > div > div:nth-child({section}) > div:nth-child({agency}) > div > div > div > div:nth-child(2) > a")
-                                return
-                            except:
-                                logging.critical(f"failed to find this agency: {agency_to_click}")
-                    else:
-                        break
-            else:
-                break
-
-    def scrape_table(self, department_to_open):
-        self.browser.wait_until_page_contains_element('//div[@id="agency-tiles-widget"]//div[@class="col-sm-4 text-center noUnderline"]')
-        self.Department = self.browser.find_elements(
-            '//div[@id="agency-tiles-widget"]//div[@class="col-sm-4 text-center noUnderline"]')
-        particular_agency = self.Department[department_to_open]
+    def Open_department(self, department_to_open):
+        global Table_link
+        particular_agency = self.department[department_to_open]
         self.browser.wait_until_page_contains_element(particular_agency)
         Table_link = self.browser.find_element(particular_agency).find_element_by_tag_name("a").get_attribute("href")
-        self.browser.go_to(Table_link)
+        return Table_link
+
+    def Get_table(self):
+        global total_rows
+        global agency_tile_list
+        self.browser.go_to(self.Open_department(24))
         self.browser.wait_until_page_contains_element('//*[@id="investments-table-object_info"]',
                                                       timeout=timedelta(seconds=50))
         raw_data = self.browser.find_element('//*[@id="investments-table-object_info"]')
-        agency_data = raw_data.text.split(" ")
-        total_rows = int(agency_data[-2])
-        self.browser.wait_until_page_contains_element('//*[@id="investments-table-object_length"]/label/select')
+        #agency_data = raw_data.text.split(" ")
+        total_rows = int(raw_data.text.split(" ")[-2])
+
+    def get_out_all_table_rows(self):
+        self.browser.wait_until_page_contains_element('//*[@id="investments-table-object_length"]/label/select', timeout=timedelta(seconds=20))
         self.browser.find_element('//*[@id="investments-table-object_length"]/label/select').click()
         self.browser.find_element('//*[@id="investments-table-object_length"]/label/select/option[4]').click()
         self.browser.wait_until_page_contains_element(
             f'//*[@id="investments-table-object"]/tbody/tr[{total_rows}]/td[1]', timeout=timedelta(seconds=20))
+
+    def Getting_table_element(self):
+        global pdf_match
+        global columns
+        global num_col
         self.provide_headers()
         num_col = len(self.headers)
         headings = []
@@ -172,6 +142,33 @@ class ThoughtfulAutomation:
             col = headings[a] + column_element[a]
             columns.append(col)
         columns.append(pdf_match)
+
+    def get_url(self):
+        global url_list
+        global url
+        url_list = []
+        for q in range(1, total_rows + 1):
+            try:
+                url = self.browser.find_element(
+                    f'//*[@id="investments-table-object"]/tbody/tr[{q}]/td[1]').find_element_by_tag_name(
+                    "a").get_attribute("href")
+            except:
+                url = ''
+            if url:
+                url_list.append(url)
+
+    def download_pdf(self):
+        for url in url_list:
+            self.browser.go_to(url)
+            self.browser.wait_until_page_contains_element('//div[@id="business-case-pdf"]')
+            self.browser.find_element('//div[@id="business-case-pdf"]').click()
+            self.download_wait(f"{OUTPUT_PATH}")
+
+    def populating_pdf_match_column(self):
+        self.browser.go_to(Table_link)
+        self.get_out_all_table_rows()
+        self.browser.wait_until_page_contains_element(
+            f'//*[@id="investments-table-object"]/tbody/tr[{total_rows}]/td[{num_col}]', timeout=timedelta(seconds=20))
         for q in range(1, total_rows + 1):
             try:
                 url = self.browser.find_element(
@@ -182,19 +179,6 @@ class ThoughtfulAutomation:
             if url:
                 uii_nos = self.browser.find_element(f'//*[@id="investments-table-object"]/tbody/tr[{q}]/td[1]').text
                 investment_title = self.browser.find_element(f'//*[@id="investments-table-object"]/tbody/tr[{q}]/td[3]').text
-                self.browser.go_to(url)
-                self.browser.wait_until_page_contains_element('//div[@id="business-case-pdf"]')
-                self.browser.find_element('//div[@id="business-case-pdf"]').click()
-                self.download_wait(f"{OUTPUT_PATH}")
-                self.browser.go_to(Table_link)
-                self.browser.wait_until_page_contains_element('//*[@id="investments-table-object_length"]/label/select',
-                                                              timeout=timedelta(seconds=20))
-                self.browser.wait_until_page_contains_element('//*[@id="investments-table-object_length"]/label/select')
-                self.browser.find_element('//*[@id="investments-table-object_length"]/label/select').click()
-                self.browser.find_element('//*[@id="investments-table-object_length"]/label/select/option[4]').click()
-                self.browser.wait_until_page_contains_element(
-                    f'//*[@id="investments-table-object"]/tbody/tr[{total_rows}]/td[{num_col}]', timeout=timedelta(seconds=20))
-            if url:
                 check = self.same_pdf(uii_nos, investment_title)
                 if check:
                     match = "pdf is match"
@@ -203,6 +187,8 @@ class ThoughtfulAutomation:
             else:
                 match = "nan"
             pdf_match.append(match)
+            
+    def Create_exel_file(self):
         value = {}
         for x in range(0, num_col + 1):
             column_headers = columns[x][0]
@@ -212,14 +198,16 @@ class ThoughtfulAutomation:
         excel_workbook.rename_worksheet("Agency_table", "Sheet")
         excel_workbook.save()
 
-
 if __name__ == "__main__":
-    obj = ThoughtfulAutomation()
-    obj.create_workbook()
-    AB = obj.get_all_agencies()
-    obj.write_agencies_tiles(AB)
-    obj.save_excel()
-    obj.scrape_table(24)
+    obj = Automatorr()
+    obj.get_all_agencies()
+    obj.Create_exel_file_for_agency()
+    obj.Get_table()
+    obj.get_out_all_table_rows()
+    obj.Getting_table_element()
+    obj.get_url()
+    obj.download_pdf()
+    obj.populating_pdf_match_column()
+    obj.Create_exel_file()
 # -
-
-
+# ## 
